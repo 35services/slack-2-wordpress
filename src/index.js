@@ -7,17 +7,28 @@ const SyncService = require('./modules/syncService');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Rate limiting to prevent abuse
+// Rate limiting to prevent abuse (more lenient for local/internal tool)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
+  max: 1000, // Limit each IP to 1000 requests per windowMs (increased for sync operations)
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many requests from this IP, please try again later.'
+    });
+  }
 });
 
-// Apply rate limiting to API routes
-app.use('/api/', apiLimiter);
+// Apply rate limiting to API routes, but exclude sync-progress (polled frequently)
+app.use('/api/', (req, res, next) => {
+  // Skip rate limiting for sync-progress endpoint (polled every 500ms)
+  if (req.path === '/sync-progress') {
+    return next();
+  }
+  return apiLimiter(req, res, next);
+});
 
 // Middleware
 app.use(express.json());
@@ -30,7 +41,8 @@ const syncService = new SyncService({
   wordpressUrl: process.env.WORDPRESS_URL,
   wordpressUsername: process.env.WORDPRESS_USERNAME,
   wordpressPassword: process.env.WORDPRESS_PASSWORD,
-  stateFile: process.env.STATE_FILE || 'state.json'
+  stateFile: process.env.STATE_FILE || 'state.json',
+  markdownOutputDir: process.env.MARKDOWN_OUTPUT_DIR || './data/posts'
 });
 
 // Initialize state manager
@@ -76,6 +88,25 @@ app.get('/api/status', async (req, res) => {
     res.json({
       success: true,
       ...status
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Get current sync progress
+ */
+app.get('/api/sync-progress', async (req, res) => {
+  try {
+    await ensureInitialized();
+    const progress = syncService.getSyncProgress();
+    res.json({
+      success: true,
+      progress: progress
     });
   } catch (error) {
     res.status(500).json({

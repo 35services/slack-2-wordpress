@@ -264,6 +264,11 @@
         a:hover {
             text-decoration: underline;
         }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
     </style>
 </head>
 <body>
@@ -286,6 +291,17 @@
         <div class="card">
             <h2>📊 Sync Status</h2>
             <div id="loading" class="loading">Loading...</div>
+            <div id="syncProgress" style="display: none; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #667eea;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong id="progressStatus" style="color: #333; font-size: 16px;">Initializing...</strong>
+                    <span id="progressStep" style="color: #666; font-size: 14px; font-weight: 500;"></span>
+                </div>
+                <div id="progressMessage" style="color: #444; margin-bottom: 10px; font-size: 14px; line-height: 1.5;"></div>
+                <div id="progressBar" style="width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; margin-bottom: 10px;">
+                    <div id="progressBarFill" style="height: 100%; background: #667eea; width: 0%; transition: width 0.3s;"></div>
+                </div>
+                <div id="progressDetails" style="margin-top: 10px; font-size: 13px; color: #555; font-weight: 500;"></div>
+            </div>
             <div id="status"></div>
         </div>
 
@@ -336,19 +352,62 @@
                 
                 if (data.success) {
                     const statusDiv = document.getElementById('connectionStatus');
+                    const conn = data.connections;
+                    let errorHtml = '';
+                    let channelsHtml = '';
+                    
+                    if (conn.errors && Object.keys(conn.errors).length > 0) {
+                        errorHtml = '<div class="connection-errors">';
+                        for (const [key, message] of Object.entries(conn.errors)) {
+                            errorHtml += `<div class="error-item"><strong>${key}:</strong> ${message}</div>`;
+                        }
+                        errorHtml += '</div>';
+                    }
+                    
+                    if (conn.availableChannels && conn.availableChannels.length > 0) {
+                        channelsHtml = '<div class="available-channels" style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px;">';
+                        channelsHtml += '<strong>Available Channels:</strong><br>';
+                        channelsHtml += '<small style="color: #666;">Channels the bot can access:</small><ul style="margin: 5px 0; padding-left: 20px;">';
+                        conn.availableChannels.forEach(ch => {
+                            const memberStatus = ch.is_member ? '✓ Member' : '✗ Not a member';
+                            const type = ch.is_private ? '🔒 Private' : '🌐 Public';
+                            channelsHtml += `<li><code>${ch.id}</code> - ${ch.name} (${type}) - ${memberStatus}</li>`;
+                        });
+                        channelsHtml += '</ul></div>';
+                    }
+                    
                     statusDiv.innerHTML = `
                         <div class="connection-status">
-                            <div class="connection-item ${data.connections.slack ? 'connected' : 'disconnected'}">
-                                <strong>Slack</strong><br>
-                                ${data.connections.slack ? '✓ Connected' : '✗ Disconnected'}
+                            <div class="connection-item ${conn.slack ? 'connected' : 'disconnected'}">
+                                <strong>Slack Authentication</strong><br>
+                                ${conn.slack ? '✓ Connected' : '✗ Disconnected'}
+                                ${conn.errors?.slack ? '<br><small style="color: #d32f2f;">' + conn.errors.slack + '</small>' : ''}
                             </div>
-                            <div class="connection-item ${data.connections.wordpress ? 'connected' : 'disconnected'}">
+                            <div class="connection-item ${conn.slackChannel ? 'connected' : 'disconnected'}">
+                                <strong>Slack Channel Access</strong><br>
+                                ${conn.slackChannel ? '✓ Accessible' : '✗ Not Accessible'}
+                                ${conn.errors?.slackChannel ? '<br><small style="color: #d32f2f;">' + conn.errors.slackChannel + '</small>' : ''}
+                            </div>
+                            <div class="connection-item ${conn.wordpress ? 'connected' : 'disconnected'}">
                                 <strong>WordPress</strong><br>
-                                ${data.connections.wordpress ? '✓ Connected' : '✗ Disconnected'}
+                                ${conn.wordpress ? '✓ Connected' : '✗ Disconnected'}
+                                ${conn.wordpressRole && conn.wordpressRole.authenticated !== false ? 
+                                  `<br><small style="color: #666;">User: ${conn.wordpressRole.username || 'N/A'}, Role: ${conn.wordpressRole.roles?.join(', ') || 'N/A'}</small>` : 
+                                  conn.wordpressRole && conn.wordpressRole.authenticated === false ?
+                                  `<br><small style="color: #d32f2f;">Not authenticated - check credentials</small>` :
+                                  ''}
+                                ${conn.errors?.wordpress ? '<br><small style="color: #d32f2f;">' + conn.errors.wordpress + '</small>' : ''}
                             </div>
                         </div>
+                        ${errorHtml}
+                        ${channelsHtml}
                     `;
-                    showMessage('Connection test complete', 'success');
+                    
+                    if (conn.slack && conn.slackChannel && conn.wordpress) {
+                        showMessage('All connections successful!', 'success');
+                    } else {
+                        showMessage('Some connections failed. Check details above.', 'error');
+                    }
                 } else {
                     showMessage('Connection test failed: ' + data.error, 'error');
                 }
@@ -359,35 +418,168 @@
             }
         }
 
+        let progressInterval = null;
+
         async function syncAll() {
             showLoading();
+            const progressDiv = document.getElementById('syncProgress');
+            progressDiv.style.display = 'block';
+            
+            // Start polling for progress
+            progressInterval = setInterval(updateProgress, 500); // Poll every 500ms
+            
             try {
-                const response = await fetch('/api/sync', { method: 'POST' });
+                // Start sync in background
+                const syncPromise = fetch('/api/sync', { method: 'POST' });
+                
+                // Wait for sync to complete
+                const response = await syncPromise;
                 const data = await response.json();
+                
+                // Stop polling
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
                 
                 if (data.success) {
                     const results = data.results;
-                    let message = `Sync complete: ${results.created.length} created, ${results.updated.length} updated, ${results.errors.length} errors`;
+                    let message = `Sync complete: ${results.created.length} created, ${results.updated.length} updated`;
+                    if (results.imagesDownloaded !== undefined && results.imagesDownloaded > 0) {
+                        message += `, ${results.imagesDownloaded} images downloaded`;
+                    }
+                    if (results.markdownExported !== undefined) {
+                        message += `, ${results.markdownExported} markdown files exported`;
+                    }
+                    message += `, ${results.errors.length} errors`;
                     showMessage(message, results.errors.length > 0 ? 'error' : 'success');
                     
                     // Show detailed results
                     displayResults(results);
                     
+                    // Hide progress after a delay
+                    setTimeout(() => {
+                        progressDiv.style.display = 'none';
+                    }, 5000);
+                    
                     // Refresh status
                     await loadStatus();
                 } else {
                     showMessage('Sync failed: ' + data.error, 'error');
+                    progressDiv.style.display = 'none';
                 }
             } catch (error) {
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
                 showMessage('Error during sync: ' + error.message, 'error');
+                progressDiv.style.display = 'none';
             } finally {
                 hideLoading();
+            }
+        }
+
+        async function updateProgress() {
+            try {
+                const response = await fetch('/api/sync-progress');
+                const data = await response.json();
+                
+                if (data.success && data.progress) {
+                    const progress = data.progress;
+                    const progressDiv = document.getElementById('syncProgress');
+                    const statusEl = document.getElementById('progressStatus');
+                    const messageEl = document.getElementById('progressMessage');
+                    const stepEl = document.getElementById('progressStep');
+                    const barFill = document.getElementById('progressBarFill');
+                    const detailsEl = document.getElementById('progressDetails');
+                    
+                    // Update status
+                    const statusText = {
+                        'starting': '🔄 Starting',
+                        'validating': '🔍 Validating',
+                        'fetching': '📥 Fetching',
+                        'fetching-threads': '📥 Fetching Threads',
+                        'downloading-images': '📸 Downloading Images',
+                        'exporting-markdown': '📄 Exporting Markdown',
+                        'processing': '⚙️ Processing',
+                        'completed': '✅ Completed',
+                        'error': '❌ Error'
+                    };
+                    statusEl.textContent = statusText[progress.status] || progress.status;
+                    
+                    // Update message
+                    messageEl.textContent = progress.message || 'Processing...';
+                    
+                    // Update progress bar
+                    if (progress.totalSteps > 0 && progress.currentStep !== undefined) {
+                        const percent = Math.round((progress.currentStep / progress.totalSteps) * 100);
+                        barFill.style.width = percent + '%';
+                        stepEl.textContent = `${progress.currentStep} / ${progress.totalSteps}`;
+                    } else if (progress.status === 'validating' || progress.status === 'fetching') {
+                        // Show indeterminate progress for validation/fetching
+                        barFill.style.width = '30%';
+                        barFill.style.animation = 'pulse 1.5s ease-in-out infinite';
+                        stepEl.textContent = '';
+                    } else {
+                        stepEl.textContent = '';
+                        barFill.style.width = '0%';
+                        barFill.style.animation = 'none';
+                    }
+                    
+                    // Update details
+                    if (progress.results) {
+                        const details = [];
+                        if (progress.results.imagesDownloaded > 0) {
+                            details.push(`📸 Images: ${progress.results.imagesDownloaded}`);
+                        }
+                        if (progress.results.markdownExported > 0) {
+                            details.push(`📄 Markdown: ${progress.results.markdownExported}`);
+                        }
+                        if (progress.results.created.length > 0) {
+                            details.push(`✓ Created: ${progress.results.created.length}`);
+                        }
+                        if (progress.results.updated.length > 0) {
+                            details.push(`↻ Updated: ${progress.results.updated.length}`);
+                        }
+                        if (progress.results.errors.length > 0) {
+                            details.push(`✗ Errors: ${progress.results.errors.length}`);
+                        }
+                        detailsEl.textContent = details.length > 0 ? details.join(' • ') : '';
+                    }
+                    
+                    // Show progress div
+                    progressDiv.style.display = 'block';
+                } else if (data.success && !data.progress) {
+                    // No active sync
+                    const progressDiv = document.getElementById('syncProgress');
+                    progressDiv.style.display = 'none';
+                    if (progressInterval) {
+                        clearInterval(progressInterval);
+                        progressInterval = null;
+                    }
+                }
+            } catch (error) {
+                // Silently fail - progress polling shouldn't break the UI
+                console.error('Error fetching progress:', error);
             }
         }
 
         function displayResults(results) {
             const statusDiv = document.getElementById('status');
             let html = '<div class="results"><h3>Sync Results</h3>';
+            
+            if (results.imagesDownloaded !== undefined && results.imagesDownloaded > 0) {
+                html += `<div class="result-item" style="background: #fff3e0; color: #e65100; margin-bottom: 10px;">
+                    📸 Images: <strong>${results.imagesDownloaded} images downloaded</strong> to ./data/images/
+                </div>`;
+            }
+            if (results.markdownExported !== undefined) {
+                html += `<div class="result-item" style="background: #e3f2fd; color: #1565c0; margin-bottom: 10px;">
+                    📄 Markdown: <strong>${results.markdownExported} files exported</strong> to ./data/posts/
+                    ${results.markdownErrors > 0 ? ` (${results.markdownErrors} errors)` : ''}
+                </div>`;
+            }
             
             results.created.forEach(item => {
                 html += `<div class="result-item created">✓ Created: <strong>${item.title}</strong> - <a href="${item.link}" target="_blank">View Post</a></div>`;
@@ -398,7 +590,8 @@
             });
             
             results.errors.forEach(item => {
-                html += `<div class="result-item error">✗ Error: Thread ${item.threadTs} - ${item.error}</div>`;
+                const note = item.note ? ` <small style="color: #666;">(${item.note})</small>` : '';
+                html += `<div class="result-item error">✗ WordPress Error: Thread ${item.threadTs} - ${item.error}${note}</div>`;
             });
             
             html += '</div>';
