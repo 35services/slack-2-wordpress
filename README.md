@@ -1,0 +1,6 @@
+- this should be a slack tool that scans a scannel and based on a thread will create a wordpress blog post
+- each thread should be linked so we can update the post
+- the linked state should be persistet in a JSON file
+- login to wordpress will be provided via username and password
+- maybe create a web app than can be run loally and which connects
+- we need the corresponding slack app/intergraition, choose what we need
