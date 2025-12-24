@@ -188,11 +188,37 @@ This allows the application to:
 2. **Formatting**: Each thread is formatted into a blog post:
    - The first message becomes the post title and main content
    - Replies are added as additional content sections
-3. **Mapping**: Thread timestamps are mapped to WordPress post IDs in `state.json`
-4. **Syncing**: 
+3. **LLM Prompt Generation**: Creates AI-ready prompts from thread conversations
+4. **Mapping**: Thread timestamps are mapped to WordPress post IDs in `state.json`
+5. **Syncing**: 
    - New threads create new WordPress posts (as drafts)
    - Existing threads update their corresponding posts
-5. **Persistence**: All mappings are saved to ensure consistency across runs
+6. **Persistence**: All mappings and LLM prompts are saved to ensure consistency across runs
+
+## Using LLM Prompts
+
+The application includes a powerful feature to generate prompts for AI assistants like ChatGPT or Claude.
+
+### How to Use LLM Prompts
+
+1. After syncing threads, navigate to the "Thread Mappings" section
+2. Each mapped thread has a "🤖 View Prompt" button
+3. Click the button to open a modal with the generated prompt
+4. Click "📋 Copy to Clipboard" to copy the prompt
+5. Open your preferred AI assistant (ChatGPT, Claude, etc.)
+6. Paste the prompt and let the AI generate a polished blog post
+7. Copy the AI-generated content and use it in your WordPress post
+
+### What's in the Prompt?
+
+Each LLM prompt includes:
+- The complete thread conversation (original post + all replies)
+- Clear formatting and structure
+- Instructions for creating a professional blog post
+- Guidelines for proper HTML formatting
+- Suggestions for tone and style
+
+The prompts are stored in `state.json` alongside your thread mappings for quick access.
 
 ## Development
 

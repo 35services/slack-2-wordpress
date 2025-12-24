@@ -12,6 +12,8 @@ A complete Node.js application that synchronizes Slack channel threads to WordPr
 - ✅ Thread-to-post mapping with persistent state
 - ✅ Automated synchronization
 - ✅ Web-based user interface
+- ✅ LLM prompt generation from threads
+- ✅ Docker support for easy deployment
 
 ### Architecture
 
@@ -25,9 +27,11 @@ slack-2-wordpress/
 │       ├── stateManager.js      # JSON state persistence
 │       └── syncService.js       # Orchestration logic
 ├── public/
-│   └── index.html               # Web UI
+│   └── index.html               # Web UI with LLM prompt modal
 ├── .env.example                 # Configuration template
 ├── package.json                 # Dependencies
+├── Dockerfile                   # Docker image definition
+├── docker-compose.yml           # Docker Compose configuration
 ├── SETUP.md                     # Detailed setup guide
 └── README.md                    # Quick start guide
 ```
@@ -39,6 +43,7 @@ slack-2-wordpress/
 - Scans specified channel for threads
 - Fetches thread messages and replies
 - Formats thread content into HTML for WordPress
+- Generates LLM prompts from thread conversations
 
 #### 2. WordPress Integration (`wordpressService.js`)
 - Uses WordPress REST API
@@ -51,7 +56,8 @@ slack-2-wordpress/
 - Stores thread-to-post mappings in `state.json`
 - Enables update detection (new vs. existing threads)
 - Persists across application restarts
-- Format: `{ "threadTs": { "postId": 123, "title": "...", "lastUpdated": "..." } }`
+- Stores LLM prompts for each thread
+- Format: `{ "threadTs": { "postId": 123, "title": "...", "lastUpdated": "...", "llmPrompt": "..." } }`
 
 #### 4. Sync Service (`syncService.js`)
 - Orchestrates the sync process
@@ -59,6 +65,7 @@ slack-2-wordpress/
 - Single thread sync capability
 - Connection testing
 - Status reporting
+- LLM prompt generation and caching
 
 #### 5. Web Application (`index.js` + `index.html`)
 - Express.js server with REST API
@@ -66,7 +73,14 @@ slack-2-wordpress/
 - Real-time sync status
 - Connection testing
 - Mapping visualization
+- LLM prompt modal with copy-to-clipboard
 - Rate limiting (100 requests per 15 minutes)
+
+#### 6. Docker Support
+- Dockerfile for containerized deployment
+- Docker Compose for easy setup
+- Persistent volume for state file
+- No local Node.js installation required
 
 ### API Endpoints
 
@@ -77,6 +91,7 @@ slack-2-wordpress/
 | `/api/status` | GET | Get sync status and mappings |
 | `/api/sync` | POST | Sync all threads |
 | `/api/sync/:threadTs` | POST | Sync specific thread |
+| `/api/llm-prompt/:threadTs` | GET | Get LLM prompt for a thread |
 | `/health` | GET | Health check |
 
 ### Security Measures
@@ -151,6 +166,54 @@ Users need to provide:
    - Updates existing posts for known threads
    - Saves mappings to state.json
 5. Results displayed in web UI with links to WordPress posts
+
+### LLM Prompt Generation
+
+The application automatically generates LLM prompts from Slack threads that can be used with any AI assistant (ChatGPT, Claude, etc.) to create polished blog posts.
+
+**How it works:**
+1. When a thread is synced, an LLM prompt is automatically generated
+2. The prompt includes:
+   - All messages from the thread (original post + replies)
+   - Clear formatting with "Original Post" and "Reply" sections
+   - Instructions for the LLM to create a professional blog post
+   - Guidelines for HTML formatting suitable for WordPress
+3. Prompts are stored in `state.json` for quick access
+4. Users can view and copy prompts via the web UI
+
+**Using the LLM Prompt feature:**
+1. After syncing threads, click "🤖 View Prompt" in the mappings table
+2. A modal appears with the generated prompt
+3. Click "📋 Copy to Clipboard" to copy the prompt
+4. Paste into your preferred LLM (ChatGPT, Claude, etc.)
+5. The LLM will generate a polished blog post based on the thread
+6. Copy the generated content and paste into your WordPress post
+
+**Example Prompt Structure:**
+```
+Please write a professional blog post based on the following Slack thread conversation:
+
+=== THREAD START ===
+
+Original Post:
+[First message text]
+
+Reply 1:
+[First reply text]
+
+Reply 2:
+[Second reply text]
+
+=== THREAD END ===
+
+Instructions:
+1. Create an engaging blog post title
+2. Write a well-structured blog post with proper paragraphs
+3. Include relevant headings if appropriate
+4. Maintain a professional yet approachable tone
+5. Incorporate insights from all the replies in the thread
+6. Format the output in HTML suitable for WordPress
+```
 
 ### Development Decisions
 

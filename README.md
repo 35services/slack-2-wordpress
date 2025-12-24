@@ -12,6 +12,8 @@ A tool that automatically syncs Slack channel threads to WordPress blog posts.
 4. ✓ WordPress authentication via username and application password
 5. ✓ Web application that runs locally with a user-friendly interface
 6. ✓ Slack Bot integration
+7. ✓ **LLM prompt generation** - Create AI-ready prompts from threads for ChatGPT, Claude, etc.
+8. ✓ **Docker support** - Run without installing Node.js locally
 
 ## Quick Start
 
@@ -65,7 +67,8 @@ For detailed setup instructions, including how to configure Slack and WordPress,
 
 1. Scans configured Slack channel for threads
 2. Converts threads to WordPress posts (drafts)
-3. Maintains thread-to-post mappings in `state.json`
-4. Updates existing posts when threads change
+3. Generates LLM prompts that can be copied and used with AI assistants
+4. Maintains thread-to-post mappings in `state.json`
+5. Updates existing posts when threads change
 
 See [SETUP.md](SETUP.md) for complete documentation.
