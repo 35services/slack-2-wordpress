@@ -1,10 +1,23 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 const SyncService = require('./modules/syncService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Rate limiting to prevent abuse
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting to API routes
+app.use('/api/', apiLimiter);
 
 // Middleware
 app.use(express.json());
