@@ -52,7 +52,7 @@ class WordPressService {
    */
   async updatePost(postId, postData) {
     try {
-      const response = await axios.post(
+      const response = await axios.put(
         `${this.apiBase}/posts/${postId}`,
         {
           title: postData.title,
