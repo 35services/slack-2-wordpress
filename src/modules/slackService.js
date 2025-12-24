@@ -117,6 +117,39 @@ class SlackService {
     };
     return text.replace(/[&<>"']/g, m => map[m]).replace(/\n/g, '<br>');
   }
+
+  /**
+   * Generate an LLM prompt from thread messages
+   * @param {Array} messages - Thread messages
+   * @returns {string} LLM prompt text
+   */
+  generateLLMPrompt(messages) {
+    if (!messages || messages.length === 0) {
+      throw new Error('No messages to generate prompt from');
+    }
+
+    let prompt = 'Please write a professional blog post based on the following Slack thread conversation:\n\n';
+    prompt += '=== THREAD START ===\n\n';
+
+    messages.forEach((msg, index) => {
+      if (index === 0) {
+        prompt += `Original Post:\n${msg.text}\n\n`;
+      } else {
+        prompt += `Reply ${index}:\n${msg.text}\n\n`;
+      }
+    });
+
+    prompt += '=== THREAD END ===\n\n';
+    prompt += 'Instructions:\n';
+    prompt += '1. Create an engaging blog post title\n';
+    prompt += '2. Write a well-structured blog post with proper paragraphs\n';
+    prompt += '3. Include relevant headings if appropriate\n';
+    prompt += '4. Maintain a professional yet approachable tone\n';
+    prompt += '5. Incorporate insights from all the replies in the thread\n';
+    prompt += '6. Format the output in HTML suitable for WordPress\n';
+
+    return prompt;
+  }
 }
 
 module.exports = SlackService;

@@ -77,6 +77,9 @@ class SyncService {
       // Format as post
       const postData = this.slackService.formatThreadAsPost(messages);
 
+      // Generate LLM prompt
+      const llmPrompt = this.slackService.generateLLMPrompt(messages);
+
       // Check if thread is already mapped
       const existingPostId = this.stateManager.getPostId(threadTs);
 
@@ -84,7 +87,7 @@ class SyncService {
       if (existingPostId) {
         // Update existing post
         const wpPost = await this.wordpressService.updatePost(existingPostId, postData);
-        await this.stateManager.setMapping(threadTs, wpPost.id, wpPost.title);
+        await this.stateManager.setMapping(threadTs, wpPost.id, wpPost.title, llmPrompt);
         
         result = {
           action: 'updated',
@@ -96,7 +99,7 @@ class SyncService {
       } else {
         // Create new post
         const wpPost = await this.wordpressService.createPost(postData);
-        await this.stateManager.setMapping(threadTs, wpPost.id, wpPost.title);
+        await this.stateManager.setMapping(threadTs, wpPost.id, wpPost.title, llmPrompt);
         
         result = {
           action: 'created',
@@ -156,6 +159,43 @@ class SyncService {
     }
 
     return results;
+  }
+
+  /**
+   * Get LLM prompt for a specific thread
+   * @param {string} threadTs - Thread timestamp
+   * @returns {Promise<Object>} LLM prompt data
+   */
+  async getLLMPrompt(threadTs) {
+    try {
+      // Check if we have a cached prompt
+      const cachedPrompt = this.stateManager.getLLMPrompt(threadTs);
+      if (cachedPrompt) {
+        return {
+          threadTs,
+          prompt: cachedPrompt,
+          cached: true
+        };
+      }
+
+      // Generate new prompt from thread
+      const messages = await this.slackService.getThreadReplies(this.channelId, threadTs);
+      const prompt = this.slackService.generateLLMPrompt(messages);
+      
+      // Cache it if thread is mapped
+      if (this.stateManager.isMapped(threadTs)) {
+        await this.stateManager.setLLMPrompt(threadTs, prompt);
+      }
+
+      return {
+        threadTs,
+        prompt,
+        cached: false
+      };
+    } catch (error) {
+      console.error(`Error getting LLM prompt for thread ${threadTs}:`, error);
+      throw error;
+    }
   }
 }
 

@@ -124,6 +124,26 @@ app.post('/api/sync/:threadTs', async (req, res) => {
   }
 });
 
+/**
+ * Get LLM prompt for a specific thread
+ */
+app.get('/api/llm-prompt/:threadTs', async (req, res) => {
+  try {
+    await ensureInitialized();
+    const { threadTs } = req.params;
+    const promptData = await syncService.getLLMPrompt(threadTs);
+    res.json({
+      success: true,
+      ...promptData
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });

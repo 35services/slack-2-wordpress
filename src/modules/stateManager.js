@@ -74,14 +74,37 @@ class StateManager {
    * @param {string} threadTs - Slack thread timestamp
    * @param {number} postId - WordPress post ID
    * @param {string} title - Post title
+   * @param {string} llmPrompt - Optional LLM prompt for the thread
    */
-  async setMapping(threadTs, postId, title) {
+  async setMapping(threadTs, postId, title, llmPrompt = null) {
     this.state.mappings[threadTs] = {
       postId,
       title,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      ...(llmPrompt && { llmPrompt })
     };
     await this.save();
+  }
+
+  /**
+   * Get LLM prompt for a thread
+   * @param {string} threadTs - Slack thread timestamp
+   * @returns {string|null} LLM prompt or null
+   */
+  getLLMPrompt(threadTs) {
+    return this.state.mappings[threadTs]?.llmPrompt || null;
+  }
+
+  /**
+   * Set LLM prompt for a thread
+   * @param {string} threadTs - Slack thread timestamp
+   * @param {string} llmPrompt - LLM prompt text
+   */
+  async setLLMPrompt(threadTs, llmPrompt) {
+    if (this.state.mappings[threadTs]) {
+      this.state.mappings[threadTs].llmPrompt = llmPrompt;
+      await this.save();
+    }
   }
 
   /**

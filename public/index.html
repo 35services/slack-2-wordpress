@@ -183,6 +183,79 @@
             color: #999;
         }
 
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+
+        .copy-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close-btn {
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: #000;
+        }
+
+        .prompt-text {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
         a {
             color: #667eea;
             text-decoration: none;
@@ -220,6 +293,18 @@
             <h2>📝 Thread Mappings</h2>
             <p class="subtitle">Linked Slack threads and WordPress posts</p>
             <div id="mappings"></div>
+        </div>
+    </div>
+
+    <!-- Modal for LLM Prompt -->
+    <div id="llmPromptModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🤖 LLM Prompt</h2>
+                <span class="close-btn" onclick="closePromptModal()">&times;</span>
+            </div>
+            <div id="promptContent"></div>
+            <button class="button" onclick="copyPromptToClipboard()">📋 Copy to Clipboard</button>
         </div>
     </div>
 
@@ -348,21 +433,80 @@
             }
             
             let html = '<table class="mappings-table">';
-            html += '<thead><tr><th>Thread ID</th><th>Post ID</th><th>Title</th><th>Last Updated</th></tr></thead>';
+            html += '<thead><tr><th>Thread ID</th><th>Post ID</th><th>Title</th><th>Last Updated</th><th>LLM Prompt</th></tr></thead>';
             html += '<tbody>';
             
             mappings.forEach(mapping => {
                 const date = new Date(mapping.lastUpdated).toLocaleString();
+                const hasPrompt = mapping.llmPrompt ? true : false;
                 html += `<tr>
                     <td><code>${mapping.threadTs}</code></td>
                     <td>${mapping.postId}</td>
                     <td>${mapping.title}</td>
                     <td class="timestamp">${date}</td>
+                    <td>
+                        <button class="copy-btn" onclick="viewPrompt('${mapping.threadTs}')" ${!hasPrompt ? 'disabled' : ''}>
+                            ${hasPrompt ? '🤖 View Prompt' : 'N/A'}
+                        </button>
+                    </td>
                 </tr>`;
             });
             
             html += '</tbody></table>';
             mappingsDiv.innerHTML = html;
+        }
+
+        let currentPrompt = '';
+
+        async function viewPrompt(threadTs) {
+            showLoading();
+            try {
+                const response = await fetch(`/api/llm-prompt/${threadTs}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentPrompt = data.prompt;
+                    const promptContent = document.getElementById('promptContent');
+                    promptContent.innerHTML = `
+                        <div class="prompt-text">${escapeHtml(data.prompt)}</div>
+                        <p class="subtitle">${data.cached ? '✓ Cached prompt' : '⚡ Generated fresh'}</p>
+                    `;
+                    document.getElementById('llmPromptModal').style.display = 'block';
+                } else {
+                    showMessage('Failed to load prompt: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error loading prompt: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function closePromptModal() {
+            document.getElementById('llmPromptModal').style.display = 'none';
+        }
+
+        async function copyPromptToClipboard() {
+            try {
+                await navigator.clipboard.writeText(currentPrompt);
+                showMessage('Prompt copied to clipboard!', 'success');
+            } catch (error) {
+                showMessage('Failed to copy to clipboard: ' + error.message, 'error');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('llmPromptModal');
+            if (event.target == modal) {
+                closePromptModal();
+            }
         }
 
         // Load status on page load
