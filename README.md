@@ -15,6 +15,23 @@ A tool that automatically syncs Slack channel threads to WordPress blog posts.
 
 ## Quick Start
 
+### Option 1: Using Docker (Recommended)
+
+1. Configure environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your Slack and WordPress credentials
+```
+
+2. Start with Docker Compose:
+```bash
+docker-compose up -d
+```
+
+3. Open `http://localhost:3000` in your browser
+
+### Option 2: Using Node.js
+
 1. Install dependencies:
 ```bash
 npm install
@@ -39,7 +56,8 @@ For detailed setup instructions, including how to configure Slack and WordPress,
 
 ## Requirements
 
-- Node.js v14+
+- Docker and Docker Compose (recommended)
+  - OR Node.js v14+ (if not using Docker)
 - Slack workspace with bot token
 - WordPress site with REST API enabled
 

@@ -30,7 +30,7 @@ const syncService = new SyncService({
   wordpressUrl: process.env.WORDPRESS_URL,
   wordpressUsername: process.env.WORDPRESS_USERNAME,
   wordpressPassword: process.env.WORDPRESS_PASSWORD,
-  stateFile: 'state.json'
+  stateFile: process.env.STATE_FILE || 'state.json'
 });
 
 // Initialize state manager
