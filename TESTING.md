@@ -99,20 +99,22 @@ test('should parse thread replies', () => {
 
 ## Test Coverage
 
-The project aims for **70% test coverage** across:
-- Statements
-- Branches
-- Functions
-- Lines
+The project maintains test coverage to ensure code quality:
 
 Current coverage (as of last run):
 
-| Module | Coverage |
-|--------|----------|
-| StateManager | ~82% |
-| SlackService | ~82% |
-| WordPressService | ~80% |
-| MarkdownExporter | ~95% |
+| Module | Line Coverage | Function Coverage |
+|--------|---------------|-------------------|
+| MarkdownExporter | ~96% | 100% |
+| SlackService | ~81% | ~95% |
+| StateManager | ~82% | 100% |
+| WordPressService | ~81% | 100% |
+| SyncService | ~34% | ~32% |
+| ImageDownloader | ~29% | ~45% |
+
+**Overall Coverage:** ~56% statements, ~44% branches, ~71% functions, ~57% lines
+
+**Note:** SyncService and ImageDownloader have lower coverage due to complex async workflows and network operations that are difficult to test in unit tests. These are better suited for integration tests.
 
 Run `npm run test:coverage` to see detailed coverage reports in the `coverage/` directory.
 
