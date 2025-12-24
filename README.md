@@ -32,6 +32,11 @@ docker-compose up -d
 
 3. Open `http://localhost:3000` in your browser
 
+4. View logs:
+```bash
+docker-compose logs -f
+```
+
 ### Option 2: Using Node.js
 
 1. Install dependencies:
@@ -52,9 +57,13 @@ npm start
 
 4. Open `http://localhost:3000` in your browser
 
+5. View logs: Logs will appear in the terminal where you ran `npm start`
+
 ## Documentation
 
 For detailed setup instructions, including how to configure Slack and WordPress, see [SETUP.md](SETUP.md).
+
+For Slack bot permissions reference, see [SLACK_PERMISSIONS.md](SLACK_PERMISSIONS.md).
 
 ## Postman Collection
 

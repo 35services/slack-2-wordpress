@@ -133,11 +133,38 @@ class SyncService {
         console.error('Error during image download (continuing anyway):', imageError);
       }
       
-      // Step 5: Export to markdown in parallel (with image references)
+      // Step 5: Resolve user IDs to real names
+      this.syncProgress.status = 'resolving-users';
+      this.syncProgress.message = `Resolving user names...`;
+      this.syncProgress.step = 5;
+      
+      let userMap = new Map();
+      try {
+        // Collect all unique user IDs from all messages
+        const allUserIds = new Set();
+        successfulThreads.forEach(({ messages }) => {
+          messages.forEach(msg => {
+            if (msg.user) {
+              allUserIds.add(msg.user);
+            }
+          });
+        });
+        
+        if (allUserIds.size > 0) {
+          console.log(`Resolving ${allUserIds.size} unique user IDs...`);
+          userMap = await this.slackService.resolveUsers(Array.from(allUserIds));
+          console.log(`Resolved ${userMap.size} user names`);
+        }
+      } catch (userError) {
+        console.warn('Error resolving users (continuing with user IDs):', userError.message);
+        // Continue without user resolution - will use user IDs instead
+      }
+      
+      // Step 6: Export to markdown in parallel (with image references)
       // This always runs, regardless of WordPress configuration or errors
       this.syncProgress.status = 'exporting-markdown';
       this.syncProgress.message = `Exporting ${successfulThreads.length} threads to markdown with ${totalImagesDownloaded} images...`;
-      this.syncProgress.step = 5;
+      this.syncProgress.step = 6;
       
       let markdownExports = [];
       try {
@@ -159,7 +186,8 @@ class SyncService {
             return {
               messages: t.messages,
               threadTs: t.threadTs,
-              imageDownloads: imageMap
+              imageDownloads: imageMap,
+              userMap: userMap
             };
           });
           
@@ -181,7 +209,7 @@ class SyncService {
         this.syncProgress.message = `Markdown export had errors, but continuing with WordPress sync...`;
       }
       
-      // Step 6: Process each thread (WordPress sync)
+      // Step 7: Process each thread (WordPress sync)
       // This runs independently - WordPress errors don't affect markdown files
       // Markdown files and images are already written, so WordPress errors are non-blocking
       this.syncProgress.status = 'processing';
@@ -191,7 +219,7 @@ class SyncService {
         const thread = threads[i];
         const threadInfo = threadData.find(t => t.threadTs === thread.ts);
         
-        this.syncProgress.step = 6;
+        this.syncProgress.step = 7;
         this.syncProgress.currentStep = i + 1;
         this.syncProgress.currentThread = thread.ts;
         this.syncProgress.message = `WordPress sync: thread ${i + 1} of ${threads.length} (${thread.ts})...`;
@@ -226,13 +254,13 @@ class SyncService {
         }
       }
 
-      // Step 7: Complete
+      // Step 8: Complete
       this.syncProgress.status = 'completed';
       const wpErrors = results.errors.length;
       const markdownCount = results.markdownExported || 0;
       const imageCount = results.imagesDownloaded || 0;
       this.syncProgress.message = `Complete! ${markdownCount} markdown files, ${imageCount} images saved. WordPress: ${results.created.length} created, ${results.updated.length} updated, ${wpErrors} errors`;
-      this.syncProgress.step = 7;
+      this.syncProgress.step = 8;
       this.syncProgress.currentThread = null;
       
       // Log summary

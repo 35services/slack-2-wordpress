@@ -114,7 +114,7 @@ class ImageDownloader {
         return {
           success: true,
           path: filePath,
-          relativePath: `images/${threadTs.replace(/\./g, '-')}/${filename}`,
+          relativePath: `../images/${threadTs.replace(/\./g, '-')}/${filename}`,
           filename: filename,
           cached: true
         };
@@ -122,28 +122,87 @@ class ImageDownloader {
         // File doesn't exist, proceed with download
       }
       
-      // Download the image
-      // Get token from client - WebClient stores it in options.token
+      // Download the image using Slack WebClient's file download method
+      // This ensures proper authentication and handles Slack's file URLs correctly
       const token = this.token || this.slackClient?.options?.token || this.slackClient?.token;
       if (!token) {
         throw new Error('Slack token not available for image download');
       }
       
+      // Use Slack's files.info to get the proper download URL with fresh authentication
+      let downloadUrl = image.url_private_download || image.url_private;
+      
+      // If we have a WebClient, try to use it to get file info first
+      // This ensures we have the latest URL and proper permissions
+      if (this.slackClient && this.slackClient.files) {
+        try {
+          const fileInfo = await this.slackClient.files.info({
+            file: image.id
+          });
+          if (fileInfo.file && fileInfo.file.url_private_download) {
+            downloadUrl = fileInfo.file.url_private_download;
+            console.log(`Got fresh download URL for file ${image.id}`);
+          }
+        } catch (infoError) {
+          console.warn(`Could not get file info for ${image.id}, using provided URL:`, infoError.message);
+          // Continue with provided URL
+        }
+      }
+      
+      // Download with proper headers - Slack requires Bearer token in Authorization header
       const response = await axios({
         method: 'get',
-        url: image.url_private_download || image.url_private,
+        url: downloadUrl,
         responseType: 'stream',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'User-Agent': 'Slack-2-WordPress/1.0'
         },
         httpsAgent: new https.Agent({
           rejectUnauthorized: true
-        })
+        }),
+        maxRedirects: 5,
+        validateStatus: function (status) {
+          return status >= 200 && status < 400; // Accept redirects
+        }
       });
+      
+      // Check content type to verify we're getting an image
+      const contentType = response.headers['content-type'] || '';
+      const isImageContentType = contentType.startsWith('image/') || 
+                                 contentType.includes('octet-stream') ||
+                                 contentType.includes('binary');
+      
+      if (!isImageContentType && contentType) {
+        console.warn(`Warning: Content-Type is ${contentType}, expected image/*`);
+      }
       
       // Write to file using streams - ensure binary mode
       const { createWriteStream } = require('fs');
       const writer = createWriteStream(filePath, { flags: 'w' }); // Binary by default for images
+      
+      // Collect first chunk to validate it's an image, not HTML
+      let firstChunk = null;
+      let firstChunkReceived = false;
+      
+      response.data.on('data', (chunk) => {
+        if (!firstChunkReceived) {
+          firstChunk = chunk;
+          firstChunkReceived = true;
+          
+          // Check if first bytes indicate HTML error page
+          const textStart = chunk.slice(0, 50).toString('utf8', 0, Math.min(50, chunk.length));
+          if (textStart.includes('<!DOCTYPE') || 
+              textStart.includes('<html') || 
+              textStart.toLowerCase().includes('error') ||
+              textStart.toLowerCase().includes('unauthorized') ||
+              textStart.toLowerCase().includes('forbidden')) {
+            writer.destroy();
+            response.data.destroy();
+            throw new Error(`Received HTML error page instead of image. First bytes: ${textStart.substring(0, 100)}. Check Slack authentication and file permissions.`);
+          }
+        }
+      });
       
       // Pipe the response stream to file
       response.data.pipe(writer);
@@ -179,14 +238,58 @@ class ImageDownloader {
         });
       });
       
-      console.log(`Downloaded image: ${filename} (${(image.size / 1024).toFixed(2)} KB)`);
+      // Verify the downloaded file is actually an image
+      const stats = await fs.stat(filePath);
+      if (stats.size < 100) {
+        // File is too small to be a valid image
+        await fs.unlink(filePath);
+        throw new Error(`Downloaded file is too small (${stats.size} bytes), likely an error page`);
+      }
+      
+      // Check file header to verify it's an image
+      const fileBuffer = await fs.readFile(filePath, { encoding: null });
+      const header = fileBuffer.slice(0, 12);
+      
+      // Check for common image formats
+      const isValidImage = 
+        // JPEG: FF D8 FF
+        (header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF) ||
+        // PNG: 89 50 4E 47 0D 0A 1A 0A
+        (header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47) ||
+        // GIF: 47 49 46 38 (GIF8)
+        (header[0] === 0x47 && header[1] === 0x49 && header[2] === 0x46 && (header[3] === 0x38 || header[3] === 0x39)) ||
+        // WebP: RIFF...WEBP (starts with RIFF at offset 0, WEBP at offset 8)
+        (header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46 && 
+         header[8] === 0x57 && header[9] === 0x45 && header[10] === 0x42 && header[11] === 0x50);
+      
+      if (!isValidImage) {
+        // Check if it's HTML/error page
+        const textStart = fileBuffer.slice(0, 100).toString('utf8', 0, Math.min(100, fileBuffer.length));
+        if (textStart.includes('<!DOCTYPE') || 
+            textStart.includes('<html') || 
+            textStart.toLowerCase().includes('error') ||
+            textStart.toLowerCase().includes('unauthorized') ||
+            textStart.toLowerCase().includes('forbidden')) {
+          await fs.unlink(filePath);
+          throw new Error(
+            `Downloaded file is not a valid image - appears to be HTML error page.\n` +
+            `File size: ${stats.size} bytes\n` +
+            `First 100 chars: ${textStart.substring(0, 100)}\n` +
+            `Check Slack authentication and ensure bot has 'files:read' permission.`
+          );
+        }
+        // Might be a valid image format we don't check for, so log warning but don't fail
+        console.warn(`Warning: Downloaded file ${filename} doesn't match common image headers. Header: ${Array.from(header).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
+      }
+      
+      console.log(`Downloaded image: ${filename} (${(stats.size / 1024).toFixed(2)} KB, verified as valid image)`);
       
       return {
         success: true,
         path: filePath,
-        relativePath: `images/${threadTs.replace(/\./g, '-')}/${filename}`,
+        relativePath: `../images/${threadTs.replace(/\./g, '-')}/${filename}`,
         filename: filename,
-        size: image.size,
+        size: stats.size,
         cached: false
       };
     } catch (error) {

@@ -20,6 +20,17 @@ A tool that automatically syncs Slack channel threads to WordPress blog posts. T
 - A WordPress site with REST API enabled
 - WordPress Application Password (see setup instructions)
 
+## Slack Bot Permissions
+
+**Required Scopes:**
+- `app_mentions:read` - View messages that mention the bot
+- `channels:history` - Read messages from channels
+- `channels:read` - View channel information
+- `files:read` - **Required** for downloading images
+- `users:read` - **Required** for resolving user IDs to real names in markdown exports
+
+See [SLACK_PERMISSIONS.md](SLACK_PERMISSIONS.md) for detailed permission documentation.
+
 ## Installation
 
 ### Option 1: Using Docker (Recommended)
@@ -46,7 +57,17 @@ docker-compose up -d
 
 6. To view logs:
 ```bash
+# View all logs (follow mode - updates in real-time)
 docker-compose logs -f
+
+# View last 100 lines
+docker-compose logs --tail=100
+
+# View logs for specific service
+docker-compose logs -f slack-to-wordpress
+
+# View logs with timestamps
+docker-compose logs -f -t
 ```
 
 7. To stop the application:
@@ -102,9 +123,12 @@ PORT=3000
 2. Click "Create New App" → "From scratch"
 3. Name your app (e.g., "WordPress Sync") and select your workspace
 4. Navigate to "OAuth & Permissions"
-5. Add the following Bot Token Scopes:
-   - `channels:history` - Read messages from public channels
-   - `channels:read` - View basic channel information
+5. Add the following Bot Token Scopes (all required):
+   - `app_mentions:read` - View messages that directly mention the bot in conversations
+   - `channels:history` - Read messages and other content from public channels the bot is added to
+   - `channels:read` - View basic information about public channels in a workspace
+   - `files:read` - **Required** to download images and files from messages
+   - `users:read` - **Required** to resolve user IDs to real names in markdown exports
    - `chat:write` - (Optional) Send messages as the bot
 6. Install the app to your workspace
 7. Copy the "Bot User OAuth Token" (starts with `xoxb-`)
@@ -253,8 +277,14 @@ npm run dev
 
 - Verify your bot token is correct and starts with `xoxb-`
 - Ensure the bot has been invited to the channel
-- Check that required scopes are enabled
+- Check that all required scopes are enabled:
+  - `app_mentions:read`
+  - `channels:history`
+  - `channels:read`
+  - `files:read` (required for image downloads)
+  - `users:read` (required for resolving user names)
 - Verify the channel ID is correct
+- After adding new scopes, reinstall the app to your workspace
 
 ### WordPress Connection Issues
 

@@ -24,9 +24,10 @@ class MarkdownExporter {
    * @param {Array} messages - Thread messages
    * @param {string} threadTs - Thread timestamp
    * @param {Array} imageDownloads - Array of image download results (optional)
+   * @param {Map<string, string>} userMap - Map of user ID to real name (optional)
    * @returns {string} Markdown content
    */
-  formatThreadAsMarkdown(messages, threadTs, imageDownloads = null) {
+  formatThreadAsMarkdown(messages, threadTs, imageDownloads = null, userMap = null) {
     if (!messages || messages.length === 0) {
       throw new Error('No messages to format');
     }
@@ -48,7 +49,16 @@ class MarkdownExporter {
         markdown += `## Reply ${index}\n\n`;
       }
       
-      markdown += `**User:** ${msg.user || 'Unknown'}\n`;
+      // Resolve user name if userMap is provided
+      let userName = 'Unknown';
+      if (msg.user) {
+        if (userMap && userMap.has(msg.user)) {
+          userName = userMap.get(msg.user);
+        } else {
+          userName = msg.user; // Fallback to user ID if not in map
+        }
+      }
+      markdown += `**User:** ${userName}\n`;
       if (msg.ts) {
         const msgDate = new Date(parseFloat(msg.ts) * 1000).toLocaleString();
         markdown += `**Time:** ${msgDate}\n`;
@@ -134,13 +144,14 @@ class MarkdownExporter {
    * @param {Array} messages - Thread messages
    * @param {string} threadTs - Thread timestamp
    * @param {Array} imageDownloads - Array of image download results (optional)
+   * @param {Map<string, string>} userMap - Map of user ID to real name (optional)
    * @returns {Promise<string>} Path to the created file
    */
-  async exportThread(messages, threadTs, imageDownloads = null) {
+  async exportThread(messages, threadTs, imageDownloads = null, userMap = null) {
     try {
       await this.init();
       
-      const markdown = this.formatThreadAsMarkdown(messages, threadTs, imageDownloads);
+      const markdown = this.formatThreadAsMarkdown(messages, threadTs, imageDownloads, userMap);
       const title = this.extractTitle(messages[0].text);
       const filename = this.generateFilename(title, threadTs);
       const filePath = path.join(this.outputDir, filename);
@@ -161,13 +172,13 @@ class MarkdownExporter {
 
   /**
    * Export multiple threads in parallel
-   * @param {Array} threads - Array of {messages, threadTs, imageDownloads} objects
+   * @param {Array} threads - Array of {messages, threadTs, imageDownloads, userMap} objects
    * @returns {Promise<Array>} Array of export results
    */
   async exportThreadsParallel(threads) {
     // Use Promise.allSettled to ensure all exports are attempted, even if some fail
-    const exportPromises = threads.map(({ messages, threadTs, imageDownloads }) =>
-      this.exportThread(messages, threadTs, imageDownloads)
+    const exportPromises = threads.map(({ messages, threadTs, imageDownloads, userMap }) =>
+      this.exportThread(messages, threadTs, imageDownloads, userMap)
         .then(result => ({ ...result, success: true, threadTs }))
         .catch(error => {
           console.error(`Failed to export thread ${threadTs} to markdown:`, error.message);

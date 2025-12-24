@@ -3,6 +3,7 @@ const { WebClient } = require('@slack/web-api');
 class SlackService {
   constructor(token) {
     this.client = new WebClient(token);
+    this.userCache = new Map(); // Cache for user ID to name mappings
   }
 
   /**
@@ -242,6 +243,60 @@ class SlackService {
     prompt += '6. Format the output in HTML suitable for WordPress\n';
 
     return prompt;
+  }
+
+  /**
+   * Resolve a single user ID to their real name
+   * @param {string} userId - Slack user ID
+   * @returns {Promise<string>} User's real name or display name, or the user ID if not found
+   */
+  async getUserName(userId) {
+    if (!userId) {
+      return 'Unknown';
+    }
+
+    // Check cache first
+    if (this.userCache.has(userId)) {
+      return this.userCache.get(userId);
+    }
+
+    try {
+      const result = await this.client.users.info({ user: userId });
+      const user = result.user;
+      
+      // Prefer real_name, fallback to display_name, then name, then user ID
+      const userName = user.real_name || user.profile?.display_name || user.name || userId;
+      this.userCache.set(userId, userName);
+      return userName;
+    } catch (error) {
+      console.warn(`Could not resolve user ${userId}:`, error.message);
+      // Cache the user ID itself to avoid repeated API calls for invalid users
+      this.userCache.set(userId, userId);
+      return userId;
+    }
+  }
+
+  /**
+   * Resolve multiple user IDs to their real names in parallel
+   * @param {Array<string>} userIds - Array of Slack user IDs
+   * @returns {Promise<Map<string, string>>} Map of user ID to real name
+   */
+  async resolveUsers(userIds) {
+    const uniqueUserIds = [...new Set(userIds.filter(id => id))];
+    const userMap = new Map();
+
+    // Resolve all users in parallel
+    const resolutionPromises = uniqueUserIds.map(async (userId) => {
+      const userName = await this.getUserName(userId);
+      return { userId, userName };
+    });
+
+    const results = await Promise.all(resolutionPromises);
+    results.forEach(({ userId, userName }) => {
+      userMap.set(userId, userName);
+    });
+
+    return userMap;
   }
 }
 
