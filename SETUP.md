@@ -212,12 +212,15 @@ This allows the application to:
 2. **Formatting**: Each thread is formatted into a blog post:
    - The first message becomes the post title and main content
    - Replies are added as additional content sections
-3. **LLM Prompt Generation**: Creates AI-ready prompts from thread conversations
-4. **Mapping**: Thread timestamps are mapped to WordPress post IDs in `state.json`
-5. **Syncing**: 
+3. **Markdown Export**: Automatically exports threads to markdown files:
+   - Main markdown file with complete thread content and images
+   - AI summary template file with image placeholders (never overwritten)
+4. **LLM Prompt Generation**: Creates AI-ready prompts from thread conversations
+5. **Mapping**: Thread timestamps are mapped to WordPress post IDs in `state.json`
+6. **Syncing**: 
    - New threads create new WordPress posts (as drafts)
    - Existing threads update their corresponding posts
-6. **Persistence**: All mappings and LLM prompts are saved to ensure consistency across runs
+7. **Persistence**: All mappings and LLM prompts are saved to ensure consistency across runs
 
 ## Using LLM Prompts
 
@@ -243,6 +246,70 @@ Each LLM prompt includes:
 - Suggestions for tone and style
 
 The prompts are stored in `state.json` alongside your thread mappings for quick access.
+
+## Using AI Summary Templates
+
+The application automatically creates AI summary template files alongside the main thread markdown files.
+
+### What are Summary Templates?
+
+When threads are exported to markdown (in the `./data/posts` directory), two files are created for each thread:
+
+1. **Main markdown file**: Contains the complete thread with all messages and images
+   - Example: `1234567890-123456-thread-title.md`
+
+2. **AI summary template**: A companion file for writing AI-generated summaries
+   - Example: `1234567890-123456-thread-title-summary-template.md`
+
+### Features of Summary Templates
+
+- **Image Placeholders**: All images from the thread are included as markdown references
+- **Never Overwritten**: Templates are created only once and never overwritten, preserving your edits
+- **AI-Ready Structure**: Pre-formatted sections for adding summaries from AI tools like Gemini, ChatGPT, or Claude
+
+### How to Use Summary Templates
+
+1. After syncing threads, find the template files in `./data/posts/`
+2. Open the `-summary-template.md` file
+3. You have two options:
+   - **Option A**: Copy the thread content and images to your AI tool (e.g., Gemini) and generate a summary
+   - **Option B**: Write your own summary manually
+4. Paste the summary into the template file's "Summary" section
+5. The images are already referenced, so you can mention them in your summary
+6. Use the completed template as a polished summary document or integrate it with the main markdown file
+
+### Template Structure
+
+```markdown
+# AI Summary Template for: Thread Title
+
+**Thread ID:** 1234567890.123456
+**Date:** 2024-01-01
+**Messages:** 5
+
+---
+
+## Summary
+
+<!-- Add your AI-generated summary or write your own summary here -->
+
+---
+
+## Referenced Images
+
+<!-- These images are from the thread. You can reference them in your summary above -->
+
+![image-1.png](../images/1234567890-123456/image-1.png)
+
+![image-2.jpg](../images/1234567890-123456/image-2.jpg)
+```
+
+### Template Persistence
+
+- Templates are **never overwritten** - they are created only once
+- If you sync the same thread again, the template file is skipped
+- This allows you to edit and customize templates without losing your work
+- To regenerate a template, simply delete it and sync again
 
 ## Development
 

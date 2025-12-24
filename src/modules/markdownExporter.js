@@ -140,6 +140,124 @@ class MarkdownExporter {
   }
 
   /**
+   * Generate AI summary template content with image placeholders
+   * @param {Array} messages - Thread messages
+   * @param {string} threadTs - Thread timestamp
+   * @param {Array} imageDownloads - Array of image download results (optional)
+   * @returns {string} Template markdown content
+   */
+  formatSummaryTemplate(messages, threadTs, imageDownloads = null) {
+    if (!messages || messages.length === 0) {
+      throw new Error('No messages to format');
+    }
+
+    const firstMessage = messages[0];
+    const title = this.extractTitle(firstMessage.text);
+    const date = new Date(parseFloat(threadTs) * 1000).toISOString().split('T')[0];
+    
+    let template = `# AI Summary Template for: ${title}\n\n`;
+    template += `**Thread ID:** ${threadTs}\n`;
+    template += `**Date:** ${date}\n`;
+    template += `**Messages:** ${messages.length}\n\n`;
+    template += `---\n\n`;
+    template += `## Summary\n\n`;
+    template += `<!-- Add your AI-generated summary or write your own summary here -->\n\n`;
+    template += `---\n\n`;
+    
+    // Add image references if available
+    if (imageDownloads) {
+      const allImages = [];
+      messages.forEach((msg, index) => {
+        if (imageDownloads[index]) {
+          const msgImages = imageDownloads[index].images || [];
+          msgImages.forEach(imageResult => {
+            if (imageResult.success) {
+              allImages.push({
+                filename: imageResult.filename,
+                relativePath: imageResult.relativePath
+              });
+            }
+          });
+        }
+      });
+      
+      if (allImages.length > 0) {
+        template += `## Referenced Images\n\n`;
+        template += `<!-- These images are from the thread. You can reference them in your summary above -->\n\n`;
+        allImages.forEach(image => {
+          const altText = image.filename || 'Image';
+          template += `![${altText}](${image.relativePath})\n\n`;
+        });
+      }
+    }
+    
+    return template;
+  }
+
+  /**
+   * Generate template filename from main filename
+   * @param {string} baseFilename - Base filename
+   * @returns {string} Template filename
+   */
+  generateTemplateFilename(baseFilename) {
+    const ext = path.extname(baseFilename);
+    const nameWithoutExt = baseFilename.substring(0, baseFilename.length - ext.length);
+    return `${nameWithoutExt}-summary-template${ext}`;
+  }
+
+  /**
+   * Export AI summary template file (only if it doesn't exist)
+   * @param {Array} messages - Thread messages
+   * @param {string} threadTs - Thread timestamp
+   * @param {Array} imageDownloads - Array of image download results (optional)
+   * @param {string} baseFilename - Base filename of the main markdown file
+   * @returns {Promise<Object>} Template file info
+   */
+  async exportSummaryTemplate(messages, threadTs, imageDownloads = null, baseFilename = null) {
+    try {
+      await this.init();
+      
+      const title = this.extractTitle(messages[0].text);
+      const filename = baseFilename || this.generateFilename(title, threadTs);
+      const templateFilename = this.generateTemplateFilename(filename);
+      const templatePath = path.join(this.outputDir, templateFilename);
+      
+      // Check if template already exists - NEVER overwrite
+      try {
+        await fs.access(templatePath);
+        console.log(`Summary template already exists, skipping: ${templateFilename}`);
+        return {
+          path: templatePath,
+          filename: templateFilename,
+          threadTs: threadTs,
+          title: title,
+          created: false,
+          skipped: true
+        };
+      } catch (accessError) {
+        // File doesn't exist, proceed with creation
+      }
+      
+      const template = this.formatSummaryTemplate(messages, threadTs, imageDownloads);
+      await fs.writeFile(templatePath, template, 'utf8');
+      
+      console.log(`Created summary template: ${templateFilename}`);
+      
+      return {
+        path: templatePath,
+        filename: templateFilename,
+        threadTs: threadTs,
+        title: title,
+        created: true,
+        skipped: false
+      };
+    } catch (error) {
+      console.error(`Error exporting summary template for thread ${threadTs}:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Export a thread as markdown file
    * @param {Array} messages - Thread messages
    * @param {string} threadTs - Thread timestamp
@@ -158,11 +276,21 @@ class MarkdownExporter {
       
       await fs.writeFile(filePath, markdown, 'utf8');
       
+      // Also create the summary template (only if it doesn't exist)
+      let summaryTemplateResult = null;
+      try {
+        summaryTemplateResult = await this.exportSummaryTemplate(messages, threadTs, imageDownloads, filename);
+      } catch (templateError) {
+        // Don't fail the main export if template creation fails
+        console.warn(`Failed to create summary template for ${threadTs}:`, templateError.message);
+      }
+      
       return {
         path: filePath,
         filename: filename,
         threadTs: threadTs,
-        title: title
+        title: title,
+        summaryTemplate: summaryTemplateResult
       };
     } catch (error) {
       console.error(`Error exporting thread ${threadTs} to markdown:`, error);
