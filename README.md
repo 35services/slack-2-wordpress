@@ -56,6 +56,15 @@ npm start
 
 For detailed setup instructions, including how to configure Slack and WordPress, see [SETUP.md](SETUP.md).
 
+## Postman Collection
+
+A Postman collection is included for testing WordPress API endpoints independently:
+- **File**: `WordPress_API.postman_collection.json`
+- **Setup Guide**: See [POSTMAN_SETUP.md](POSTMAN_SETUP.md)
+- **Maintenance**: See [MAINTENANCE.md](MAINTENANCE.md) for keeping the collection up to date
+
+**⚠️ Important**: When modifying WordPress API calls in `src/modules/wordpressService.js`, please update the Postman collection to keep it in sync.
+
 ## Requirements
 
 - Docker and Docker Compose (recommended)

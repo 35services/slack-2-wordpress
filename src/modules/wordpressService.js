@@ -1,5 +1,14 @@
 const axios = require('axios');
 
+/**
+ * WordPress REST API Service
+ * 
+ * IMPORTANT: When adding or modifying WordPress API endpoints in this file,
+ * please also update the Postman collection: WordPress_API.postman_collection.json
+ * 
+ * The Postman collection should mirror all API calls made by this service to ensure
+ * developers can test WordPress API interactions independently.
+ */
 class WordPressService {
   constructor(url, username, password) {
     this.url = url.replace(/\/$/, ''); // Remove trailing slash
