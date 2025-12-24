@@ -234,8 +234,8 @@ class MarkdownExporter {
           created: false,
           skipped: true
         };
-      } catch {
-        // File doesn't exist, create it
+      } catch (accessError) {
+        // File doesn't exist, proceed with creation
       }
       
       const template = this.formatSummaryTemplate(messages, threadTs, imageDownloads);
