@@ -99,12 +99,15 @@ class StateManager {
    * Set LLM prompt for a thread
    * @param {string} threadTs - Slack thread timestamp
    * @param {string} llmPrompt - LLM prompt text
+   * @returns {boolean} True if prompt was set, false if thread mapping doesn't exist
    */
   async setLLMPrompt(threadTs, llmPrompt) {
     if (this.state.mappings[threadTs]) {
       this.state.mappings[threadTs].llmPrompt = llmPrompt;
       await this.save();
+      return true;
     }
+    return false;
   }
 
   /**

@@ -168,6 +168,11 @@ class SyncService {
    */
   async getLLMPrompt(threadTs) {
     try {
+      // Validate threadTs parameter
+      if (!threadTs || typeof threadTs !== 'string') {
+        throw new Error('Invalid thread timestamp');
+      }
+
       // Check if we have a cached prompt
       const cachedPrompt = this.stateManager.getLLMPrompt(threadTs);
       if (cachedPrompt) {
