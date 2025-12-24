@@ -1,0 +1,340 @@
+{
+	"info": {
+		"_postman_id": "wordpress-api-slack-sync",
+		"name": "WordPress REST API - Slack Sync",
+		"description": "Collection of WordPress REST API endpoints used by the Slack to WordPress sync application.\n\n⚠️ MAINTENANCE NOTE: This collection must be kept in sync with src/modules/wordpressService.js\nWhen adding or modifying WordPress API calls in the code, update this collection accordingly.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "basic",
+		"basic": [
+			{
+				"key": "username",
+				"value": "{{wp_username}}",
+				"type": "string"
+			},
+			{
+				"key": "password",
+				"value": "{{wp_app_password}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "wp_url",
+			"value": "https://your-wordpress-site.com",
+			"type": "string"
+		},
+		{
+			"key": "wp_username",
+			"value": "your-username",
+			"type": "string"
+		},
+		{
+			"key": "wp_app_password",
+			"value": "xxxx xxxx xxxx xxxx xxxx xxxx",
+			"type": "string"
+		},
+		{
+			"key": "post_id",
+			"value": "1",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication & User Info",
+			"item": [
+				{
+					"name": "Get Current User (Test Authentication)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{wp_username}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{wp_app_password}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{wp_url}}/wp-json/wp/v2/users/me",
+							"host": [
+								"{{wp_url}}"
+							],
+							"path": [
+								"wp-json",
+								"wp",
+								"v2",
+								"users",
+								"me"
+							]
+						},
+						"description": "Get information about the currently authenticated user. This is used to test authentication and get user role information."
+					},
+					"response": []
+				},
+				{
+					"name": "Test Connection (List Posts)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{wp_username}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{wp_app_password}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{wp_url}}/wp-json/wp/v2/posts?per_page=1",
+							"host": [
+								"{{wp_url}}"
+							],
+							"path": [
+								"wp-json",
+								"wp",
+								"v2",
+								"posts"
+							],
+							"query": [
+								{
+									"key": "per_page",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Test basic API access by fetching one post. Used to verify REST API is enabled and authentication works."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for testing authentication and getting user information"
+		},
+		{
+			"name": "Posts",
+			"item": [
+				{
+					"name": "Create Post",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{wp_username}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{wp_app_password}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Test Post from Slack Sync\",\n  \"content\": \"<p>This is a test post created from Slack thread content.</p>\",\n  \"status\": \"draft\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{wp_url}}/wp-json/wp/v2/posts",
+							"host": [
+								"{{wp_url}}"
+							],
+							"path": [
+								"wp-json",
+								"wp",
+								"v2",
+								"posts"
+							]
+						},
+						"description": "Create a new WordPress post. Posts are created as drafts by default. The title and content are formatted from Slack thread messages."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Post by ID",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{wp_username}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{wp_app_password}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{wp_url}}/wp-json/wp/v2/posts/{{post_id}}",
+							"host": [
+								"{{wp_url}}"
+							],
+							"path": [
+								"wp-json",
+								"wp",
+								"v2",
+								"posts",
+								"{{post_id}}"
+							]
+						},
+						"description": "Get a specific post by its ID. Used to verify post exists and get post details."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Post",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{wp_username}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{wp_app_password}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Post Title\",\n  \"content\": \"<p>Updated content from Slack thread.</p>\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{wp_url}}/wp-json/wp/v2/posts/{{post_id}}",
+							"host": [
+								"{{wp_url}}"
+							],
+							"path": [
+								"wp-json",
+								"wp",
+								"v2",
+								"posts",
+								"{{post_id}}"
+							]
+						},
+						"description": "Update an existing WordPress post. Used when a Slack thread is updated and needs to sync changes to WordPress."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Post (Force)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "{{wp_username}}",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "{{wp_app_password}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{wp_url}}/wp-json/wp/v2/posts/{{post_id}}?force=true",
+							"host": [
+								"{{wp_url}}"
+							],
+							"path": [
+								"wp-json",
+								"wp",
+								"v2",
+								"posts",
+								"{{post_id}}"
+							],
+							"query": [
+								{
+									"key": "force",
+									"value": "true"
+								}
+							]
+						},
+						"description": "Permanently delete a post. Used to clean up test posts created during permission testing."
+					},
+					"response": []
+				}
+			],
+			"description": "CRUD operations for WordPress posts"
+		}
+	]
+}
+

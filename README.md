@@ -1,6 +1,92 @@
-- this should be a slack tool that scans a scannel and based on a thread will create a wordpress blog post
-- each thread should be linked so we can update the post
-- the linked state should be persistet in a JSON file
-- login to wordpress will be provided via username and password
-- maybe create a web app than can be run loally and which connects
-- we need the corresponding slack app/intergraition, choose what we need
+# Slack to WordPress Integration
+
+A tool that automatically syncs Slack channel threads to WordPress blog posts.
+
+## Features
+
+✅ **All features implemented:**
+
+1. ✓ Slack tool that scans a channel and creates WordPress blog posts based on threads
+2. ✓ Thread linking - each thread is linked to its WordPress post for updates
+3. ✓ Persistent state stored in JSON file
+4. ✓ WordPress authentication via username and application password
+5. ✓ Web application that runs locally with a user-friendly interface
+6. ✓ Slack Bot integration
+7. ✓ **LLM prompt generation** - Create AI-ready prompts from threads for ChatGPT, Claude, etc.
+8. ✓ **Docker support** - Run without installing Node.js locally
+
+## Quick Start
+
+### Option 1: Using Docker (Recommended)
+
+1. Configure environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your Slack and WordPress credentials
+```
+
+2. Start with Docker Compose:
+```bash
+docker-compose up -d
+```
+
+3. Open `http://localhost:3000` in your browser
+
+4. View logs:
+```bash
+docker-compose logs -f
+```
+
+### Option 2: Using Node.js
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Configure environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your Slack and WordPress credentials
+```
+
+3. Start the application:
+```bash
+npm start
+```
+
+4. Open `http://localhost:3000` in your browser
+
+5. View logs: Logs will appear in the terminal where you ran `npm start`
+
+## Documentation
+
+For detailed setup instructions, including how to configure Slack and WordPress, see [SETUP.md](SETUP.md).
+
+For Slack bot permissions reference, see [SLACK_PERMISSIONS.md](SLACK_PERMISSIONS.md).
+
+## Postman Collection
+
+A Postman collection is included for testing WordPress API endpoints independently:
+- **File**: `WordPress_API.postman_collection.json`
+- **Setup Guide**: See [POSTMAN_SETUP.md](POSTMAN_SETUP.md)
+- **Maintenance**: See [MAINTENANCE.md](MAINTENANCE.md) for keeping the collection up to date
+
+**⚠️ Important**: When modifying WordPress API calls in `src/modules/wordpressService.js`, please update the Postman collection to keep it in sync.
+
+## Requirements
+
+- Docker and Docker Compose (recommended)
+  - OR Node.js v14+ (if not using Docker)
+- Slack workspace with bot token
+- WordPress site with REST API enabled
+
+## How It Works
+
+1. Scans configured Slack channel for threads
+2. Converts threads to WordPress posts (drafts)
+3. Generates LLM prompts that can be copied and used with AI assistants
+4. Maintains thread-to-post mappings in `state.json`
+5. Updates existing posts when threads change
+
+See [SETUP.md](SETUP.md) for complete documentation.

@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slack to WordPress Sync</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        h2 {
+            color: #555;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .button:hover {
+            background: #5568d3;
+        }
+
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .connection-status {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .connection-item {
+            flex: 1;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .connection-item.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .connection-item.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .mappings-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .mappings-table th,
+        .mappings-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .mappings-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .mappings-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .results {
+            margin-top: 20px;
+        }
+
+        .result-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+
+        .result-item.created {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .result-item.updated {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .result-item.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .timestamp {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+
+        .copy-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close-btn {
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: #000;
+        }
+
+        .prompt-text {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🔄 Slack to WordPress Sync</h1>
+            <p class="subtitle">Automatically sync Slack threads to WordPress blog posts</p>
+
+            <div id="message"></div>
+
+            <div>
+                <button class="button" onclick="testConnections()">Test Connections</button>
+                <button class="button" onclick="syncAll()">Sync All Threads</button>
+                <button class="button" onclick="loadStatus()">Refresh Status</button>
+            </div>
+
+            <div id="connectionStatus" style="margin-top: 20px;"></div>
+        </div>
+
+        <div class="card">
+            <h2>📊 Sync Status</h2>
+            <div id="loading" class="loading">Loading...</div>
+            <div id="syncProgress" style="display: none; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #667eea;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong id="progressStatus" style="color: #333; font-size: 16px;">Initializing...</strong>
+                    <span id="progressStep" style="color: #666; font-size: 14px; font-weight: 500;"></span>
+                </div>
+                <div id="progressMessage" style="color: #444; margin-bottom: 10px; font-size: 14px; line-height: 1.5;"></div>
+                <div id="progressBar" style="width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; margin-bottom: 10px;">
+                    <div id="progressBarFill" style="height: 100%; background: #667eea; width: 0%; transition: width 0.3s;"></div>
+                </div>
+                <div id="progressDetails" style="margin-top: 10px; font-size: 13px; color: #555; font-weight: 500;"></div>
+            </div>
+            <div id="status"></div>
+        </div>
+
+        <div class="card">
+            <h2>📝 Thread Mappings</h2>
+            <p class="subtitle">Linked Slack threads and WordPress posts</p>
+            <div id="mappings"></div>
+        </div>
+    </div>
+
+    <!-- Modal for LLM Prompt -->
+    <div id="llmPromptModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🤖 LLM Prompt</h2>
+                <span class="close-btn" onclick="closePromptModal()">&times;</span>
+            </div>
+            <div id="promptContent"></div>
+            <button class="button" onclick="copyPromptToClipboard()">📋 Copy to Clipboard</button>
+        </div>
+    </div>
+
+    <script>
+        function showMessage(message, type = 'info') {
+            const msgDiv = document.getElementById('message');
+            msgDiv.className = `status ${type}`;
+            msgDiv.textContent = message;
+            msgDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                msgDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('show');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('show');
+        }
+
+        async function testConnections() {
+            showLoading();
+            try {
+                const response = await fetch('/api/test');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const statusDiv = document.getElementById('connectionStatus');
+                    const conn = data.connections;
+                    let errorHtml = '';
+                    let channelsHtml = '';
+                    
+                    if (conn.errors && Object.keys(conn.errors).length > 0) {
+                        errorHtml = '<div class="connection-errors">';
+                        for (const [key, message] of Object.entries(conn.errors)) {
+                            errorHtml += `<div class="error-item"><strong>${key}:</strong> ${message}</div>`;
+                        }
+                        errorHtml += '</div>';
+                    }
+                    
+                    if (conn.availableChannels && conn.availableChannels.length > 0) {
+                        channelsHtml = '<div class="available-channels" style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px;">';
+                        channelsHtml += '<strong>Available Channels:</strong><br>';
+                        channelsHtml += '<small style="color: #666;">Channels the bot can access:</small><ul style="margin: 5px 0; padding-left: 20px;">';
+                        conn.availableChannels.forEach(ch => {
+                            const memberStatus = ch.is_member ? '✓ Member' : '✗ Not a member';
+                            const type = ch.is_private ? '🔒 Private' : '🌐 Public';
+                            channelsHtml += `<li><code>${ch.id}</code> - ${ch.name} (${type}) - ${memberStatus}</li>`;
+                        });
+                        channelsHtml += '</ul></div>';
+                    }
+                    
+                    statusDiv.innerHTML = `
+                        <div class="connection-status">
+                            <div class="connection-item ${conn.slack ? 'connected' : 'disconnected'}">
+                                <strong>Slack Authentication</strong><br>
+                                ${conn.slack ? '✓ Connected' : '✗ Disconnected'}
+                                ${conn.errors?.slack ? '<br><small style="color: #d32f2f;">' + conn.errors.slack + '</small>' : ''}
+                            </div>
+                            <div class="connection-item ${conn.slackChannel ? 'connected' : 'disconnected'}">
+                                <strong>Slack Channel Access</strong><br>
+                                ${conn.slackChannel ? '✓ Accessible' : '✗ Not Accessible'}
+                                ${conn.errors?.slackChannel ? '<br><small style="color: #d32f2f;">' + conn.errors.slackChannel + '</small>' : ''}
+                            </div>
+                            <div class="connection-item ${conn.wordpress ? 'connected' : 'disconnected'}">
+                                <strong>WordPress</strong><br>
+                                ${conn.wordpress ? '✓ Connected' : '✗ Disconnected'}
+                                ${conn.wordpressRole && conn.wordpressRole.authenticated !== false ? 
+                                  `<br><small style="color: #666;">User: ${conn.wordpressRole.username || 'N/A'}, Role: ${conn.wordpressRole.roles?.join(', ') || 'N/A'}</small>` : 
+                                  conn.wordpressRole && conn.wordpressRole.authenticated === false ?
+                                  `<br><small style="color: #d32f2f;">Not authenticated - check credentials</small>` :
+                                  ''}
+                                ${conn.errors?.wordpress ? '<br><small style="color: #d32f2f;">' + conn.errors.wordpress + '</small>' : ''}
+                            </div>
+                        </div>
+                        ${errorHtml}
+                        ${channelsHtml}
+                    `;
+                    
+                    if (conn.slack && conn.slackChannel && conn.wordpress) {
+                        showMessage('All connections successful!', 'success');
+                    } else {
+                        showMessage('Some connections failed. Check details above.', 'error');
+                    }
+                } else {
+                    showMessage('Connection test failed: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error testing connections: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        let progressInterval = null;
+
+        async function syncAll() {
+            showLoading();
+            const progressDiv = document.getElementById('syncProgress');
+            progressDiv.style.display = 'block';
+            
+            // Start polling for progress
+            progressInterval = setInterval(updateProgress, 500); // Poll every 500ms
+            
+            try {
+                // Start sync in background
+                const syncPromise = fetch('/api/sync', { method: 'POST' });
+                
+                // Wait for sync to complete
+                const response = await syncPromise;
+                const data = await response.json();
+                
+                // Stop polling
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+                
+                if (data.success) {
+                    const results = data.results;
+                    let message = `Sync complete: ${results.created.length} created, ${results.updated.length} updated`;
+                    if (results.imagesDownloaded !== undefined && results.imagesDownloaded > 0) {
+                        message += `, ${results.imagesDownloaded} images downloaded`;
+                    }
+                    if (results.markdownExported !== undefined) {
+                        message += `, ${results.markdownExported} markdown files exported`;
+                    }
+                    message += `, ${results.errors.length} errors`;
+                    showMessage(message, results.errors.length > 0 ? 'error' : 'success');
+                    
+                    // Show detailed results
+                    displayResults(results);
+                    
+                    // Hide progress after a delay
+                    setTimeout(() => {
+                        progressDiv.style.display = 'none';
+                    }, 5000);
+                    
+                    // Refresh status
+                    await loadStatus();
+                } else {
+                    showMessage('Sync failed: ' + data.error, 'error');
+                    progressDiv.style.display = 'none';
+                }
+            } catch (error) {
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+                showMessage('Error during sync: ' + error.message, 'error');
+                progressDiv.style.display = 'none';
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function updateProgress() {
+            try {
+                const response = await fetch('/api/sync-progress');
+                const data = await response.json();
+                
+                if (data.success && data.progress) {
+                    const progress = data.progress;
+                    const progressDiv = document.getElementById('syncProgress');
+                    const statusEl = document.getElementById('progressStatus');
+                    const messageEl = document.getElementById('progressMessage');
+                    const stepEl = document.getElementById('progressStep');
+                    const barFill = document.getElementById('progressBarFill');
+                    const detailsEl = document.getElementById('progressDetails');
+                    
+                    // Update status
+                    const statusText = {
+                        'starting': '🔄 Starting',
+                        'validating': '🔍 Validating',
+                        'fetching': '📥 Fetching',
+                        'fetching-threads': '📥 Fetching Threads',
+                        'downloading-images': '📸 Downloading Images',
+                        'exporting-markdown': '📄 Exporting Markdown',
+                        'processing': '⚙️ Processing',
+                        'completed': '✅ Completed',
+                        'error': '❌ Error'
+                    };
+                    statusEl.textContent = statusText[progress.status] || progress.status;
+                    
+                    // Update message
+                    messageEl.textContent = progress.message || 'Processing...';
+                    
+                    // Update progress bar
+                    if (progress.totalSteps > 0 && progress.currentStep !== undefined) {
+                        const percent = Math.round((progress.currentStep / progress.totalSteps) * 100);
+                        barFill.style.width = percent + '%';
+                        stepEl.textContent = `${progress.currentStep} / ${progress.totalSteps}`;
+                    } else if (progress.status === 'validating' || progress.status === 'fetching') {
+                        // Show indeterminate progress for validation/fetching
+                        barFill.style.width = '30%';
+                        barFill.style.animation = 'pulse 1.5s ease-in-out infinite';
+                        stepEl.textContent = '';
+                    } else {
+                        stepEl.textContent = '';
+                        barFill.style.width = '0%';
+                        barFill.style.animation = 'none';
+                    }
+                    
+                    // Update details
+                    if (progress.results) {
+                        const details = [];
+                        if (progress.results.imagesDownloaded > 0) {
+                            details.push(`📸 Images: ${progress.results.imagesDownloaded}`);
+                        }
+                        if (progress.results.markdownExported > 0) {
+                            details.push(`📄 Markdown: ${progress.results.markdownExported}`);
+                        }
+                        if (progress.results.created.length > 0) {
+                            details.push(`✓ Created: ${progress.results.created.length}`);
+                        }
+                        if (progress.results.updated.length > 0) {
+                            details.push(`↻ Updated: ${progress.results.updated.length}`);
+                        }
+                        if (progress.results.errors.length > 0) {
+                            details.push(`✗ Errors: ${progress.results.errors.length}`);
+                        }
+                        detailsEl.textContent = details.length > 0 ? details.join(' • ') : '';
+                    }
+                    
+                    // Show progress div
+                    progressDiv.style.display = 'block';
+                } else if (data.success && !data.progress) {
+                    // No active sync
+                    const progressDiv = document.getElementById('syncProgress');
+                    progressDiv.style.display = 'none';
+                    if (progressInterval) {
+                        clearInterval(progressInterval);
+                        progressInterval = null;
+                    }
+                }
+            } catch (error) {
+                // Silently fail - progress polling shouldn't break the UI
+                console.error('Error fetching progress:', error);
+            }
+        }
+
+        function displayResults(results) {
+            const statusDiv = document.getElementById('status');
+            let html = '<div class="results"><h3>Sync Results</h3>';
+            
+            if (results.imagesDownloaded !== undefined && results.imagesDownloaded > 0) {
+                html += `<div class="result-item" style="background: #fff3e0; color: #e65100; margin-bottom: 10px;">
+                    📸 Images: <strong>${results.imagesDownloaded} images downloaded</strong> to ./data/images/
+                </div>`;
+            }
+            if (results.markdownExported !== undefined) {
+                html += `<div class="result-item" style="background: #e3f2fd; color: #1565c0; margin-bottom: 10px;">
+                    📄 Markdown: <strong>${results.markdownExported} files exported</strong> to ./data/posts/
+                    ${results.markdownErrors > 0 ? ` (${results.markdownErrors} errors)` : ''}
+                </div>`;
+            }
+            
+            results.created.forEach(item => {
+                html += `<div class="result-item created">✓ Created: <strong>${item.title}</strong> - <a href="${item.link}" target="_blank">View Post</a></div>`;
+            });
+            
+            results.updated.forEach(item => {
+                html += `<div class="result-item updated">↻ Updated: <strong>${item.title}</strong> - <a href="${item.link}" target="_blank">View Post</a></div>`;
+            });
+            
+            results.errors.forEach(item => {
+                const note = item.note ? ` <small style="color: #666;">(${item.note})</small>` : '';
+                html += `<div class="result-item error">✗ WordPress Error: Thread ${item.threadTs} - ${item.error}${note}</div>`;
+            });
+            
+            html += '</div>';
+            statusDiv.innerHTML = html;
+        }
+
+        async function loadStatus() {
+            showLoading();
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayMappings(data.mappings);
+                    showMessage(`Loaded ${data.totalMappings} thread mappings`, 'success');
+                } else {
+                    showMessage('Failed to load status: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error loading status: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function displayMappings(mappings) {
+            const mappingsDiv = document.getElementById('mappings');
+            
+            if (mappings.length === 0) {
+                mappingsDiv.innerHTML = '<p class="subtitle">No thread mappings yet. Click "Sync All Threads" to get started.</p>';
+                return;
+            }
+            
+            let html = '<table class="mappings-table">';
+            html += '<thead><tr><th>Thread ID</th><th>Post ID</th><th>Title</th><th>Last Updated</th><th>LLM Prompt</th></tr></thead>';
+            html += '<tbody>';
+            
+            mappings.forEach(mapping => {
+                const date = new Date(mapping.lastUpdated).toLocaleString();
+                const hasPrompt = mapping.llmPrompt ? true : false;
+                html += `<tr>
+                    <td><code>${mapping.threadTs}</code></td>
+                    <td>${mapping.postId}</td>
+                    <td>${mapping.title}</td>
+                    <td class="timestamp">${date}</td>
+                    <td>
+                        <button class="copy-btn" onclick="viewPrompt('${mapping.threadTs}')" ${!hasPrompt ? 'disabled' : ''}>
+                            ${hasPrompt ? '🤖 View Prompt' : 'N/A'}
+                        </button>
+                    </td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table>';
+            mappingsDiv.innerHTML = html;
+        }
+
+        let currentPrompt = '';
+
+        async function viewPrompt(threadTs) {
+            showLoading();
+            try {
+                const response = await fetch(`/api/llm-prompt/${threadTs}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentPrompt = data.prompt;
+                    const promptContent = document.getElementById('promptContent');
+                    promptContent.innerHTML = `
+                        <div class="prompt-text">${escapeHtml(data.prompt)}</div>
+                        <p class="subtitle">${data.cached ? '✓ Cached prompt' : '⚡ Generated fresh'}</p>
+                    `;
+                    document.getElementById('llmPromptModal').style.display = 'block';
+                } else {
+                    showMessage('Failed to load prompt: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error loading prompt: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function closePromptModal() {
+            document.getElementById('llmPromptModal').style.display = 'none';
+        }
+
+        async function copyPromptToClipboard() {
+            try {
+                await navigator.clipboard.writeText(currentPrompt);
+                showMessage('Prompt copied to clipboard!', 'success');
+            } catch (error) {
+                showMessage('Failed to copy to clipboard: ' + error.message, 'error');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('llmPromptModal');
+            if (event.target == modal) {
+                closePromptModal();
+            }
+        }
+
+        // Load status on page load
+        window.addEventListener('load', () => {
+            loadStatus();
+        });
+    </script>
+</body>
+</html>
