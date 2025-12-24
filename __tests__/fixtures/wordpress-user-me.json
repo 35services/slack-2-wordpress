@@ -1,0 +1,26 @@
+{
+  "id": 1,
+  "username": "testuser",
+  "name": "Test User",
+  "email": "testuser@example.com",
+  "url": "",
+  "description": "A test user for unit testing",
+  "link": "https://example.com/author/testuser/",
+  "slug": "testuser",
+  "avatar_urls": {
+    "24": "https://secure.gravatar.com/avatar/?s=24&d=mm&r=g",
+    "48": "https://secure.gravatar.com/avatar/?s=48&d=mm&r=g",
+    "96": "https://secure.gravatar.com/avatar/?s=96&d=mm&r=g"
+  },
+  "roles": ["author"],
+  "capabilities": {
+    "read": true,
+    "level_0": true,
+    "level_1": true,
+    "level_2": true,
+    "edit_posts": true,
+    "delete_posts": true,
+    "publish_posts": true,
+    "upload_files": true
+  }
+}

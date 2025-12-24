@@ -1,0 +1,35 @@
+{
+  "id": 123,
+  "date": "2024-01-15T10:30:00",
+  "date_gmt": "2024-01-15T10:30:00",
+  "guid": {
+    "rendered": "https://example.com/?p=123"
+  },
+  "modified": "2024-01-15T11:00:00",
+  "modified_gmt": "2024-01-15T11:00:00",
+  "slug": "test-post",
+  "status": "draft",
+  "type": "post",
+  "link": "https://example.com/test-post/",
+  "title": {
+    "rendered": "Updated: This is a test thread about Node.js best practices"
+  },
+  "content": {
+    "rendered": "<p>Updated content here</p>\n",
+    "protected": false
+  },
+  "excerpt": {
+    "rendered": "<p>Updated excerpt</p>\n",
+    "protected": false
+  },
+  "author": 1,
+  "featured_media": 0,
+  "comment_status": "open",
+  "ping_status": "open",
+  "sticky": false,
+  "template": "",
+  "format": "standard",
+  "meta": [],
+  "categories": [1],
+  "tags": []
+}

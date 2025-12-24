@@ -1,0 +1,35 @@
+{
+  "ok": true,
+  "messages": [
+    {
+      "type": "message",
+      "user": "U1234567890",
+      "text": "This is a test thread about Node.js best practices\nIt has multiple lines and discusses important topics.",
+      "ts": "1234567890.123456",
+      "thread_ts": "1234567890.123456",
+      "reply_count": 2,
+      "reply_users_count": 2,
+      "reply_users": ["U1234567890", "U0987654321"]
+    },
+    {
+      "type": "message",
+      "user": "U0987654321",
+      "text": "Great point! I totally agree with this approach.",
+      "ts": "1234567890.123457",
+      "thread_ts": "1234567890.123456",
+      "parent_user_id": "U1234567890"
+    },
+    {
+      "type": "message",
+      "user": "U1234567890",
+      "text": "Thanks for the feedback! Let's implement this.",
+      "ts": "1234567891.123458",
+      "thread_ts": "1234567890.123456",
+      "parent_user_id": "U1234567890"
+    }
+  ],
+  "has_more": false,
+  "response_metadata": {
+    "next_cursor": ""
+  }
+}

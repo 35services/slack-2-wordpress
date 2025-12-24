@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "channel": {
+    "id": "C1234567890",
+    "name": "test-channel",
+    "is_channel": true,
+    "is_group": false,
+    "is_im": false,
+    "is_member": true,
+    "is_private": false,
+    "created": 1234567890,
+    "creator": "U1234567890",
+    "is_archived": false,
+    "is_general": false,
+    "unlinked": 0,
+    "name_normalized": "test-channel",
+    "is_shared": false,
+    "is_org_shared": false,
+    "is_pending_ext_shared": false,
+    "pending_shared": [],
+    "context_team_id": "T1234567890",
+    "updated": 1234567890
+  }
+}
