@@ -65,6 +65,22 @@ For detailed setup instructions, including how to configure Slack and WordPress,
 
 For Slack bot permissions reference, see [SLACK_PERMISSIONS.md](SLACK_PERMISSIONS.md).
 
+For testing and development, see [TESTING.md](TESTING.md).
+
+## Testing
+
+The project includes comprehensive unit tests with sample data fixtures:
+
+```bash
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+See [TESTING.md](TESTING.md) for detailed testing documentation.
+
 ## Postman Collection
 
 A Postman collection is included for testing WordPress API endpoints independently:

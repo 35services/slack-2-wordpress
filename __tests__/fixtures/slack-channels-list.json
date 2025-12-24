@@ -1,0 +1,56 @@
+{
+  "ok": true,
+  "channels": [
+    {
+      "id": "C1234567890",
+      "name": "general",
+      "is_channel": true,
+      "is_group": false,
+      "is_im": false,
+      "is_member": true,
+      "is_private": false,
+      "created": 1234567890,
+      "is_archived": false,
+      "is_general": true,
+      "unlinked": 0,
+      "name_normalized": "general",
+      "is_shared": false,
+      "is_org_shared": false
+    },
+    {
+      "id": "C0987654321",
+      "name": "test-channel",
+      "is_channel": true,
+      "is_group": false,
+      "is_im": false,
+      "is_member": true,
+      "is_private": false,
+      "created": 1234567890,
+      "is_archived": false,
+      "is_general": false,
+      "unlinked": 0,
+      "name_normalized": "test-channel",
+      "is_shared": false,
+      "is_org_shared": false
+    },
+    {
+      "id": "C1111111111",
+      "name": "private-channel",
+      "is_channel": false,
+      "is_group": true,
+      "is_im": false,
+      "is_member": false,
+      "is_private": true,
+      "created": 1234567890,
+      "is_archived": false,
+      "is_general": false,
+      "unlinked": 0,
+      "name_normalized": "private-channel",
+      "is_shared": false,
+      "is_org_shared": false
+    }
+  ],
+  "response_metadata": {
+    "next_cursor": ""
+  }
+}
