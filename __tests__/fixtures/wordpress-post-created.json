@@ -1,0 +1,35 @@
+{
+  "id": 123,
+  "date": "2024-01-15T10:30:00",
+  "date_gmt": "2024-01-15T10:30:00",
+  "guid": {
+    "rendered": "https://example.com/?p=123"
+  },
+  "modified": "2024-01-15T10:30:00",
+  "modified_gmt": "2024-01-15T10:30:00",
+  "slug": "test-post",
+  "status": "draft",
+  "type": "post",
+  "link": "https://example.com/test-post/",
+  "title": {
+    "rendered": "This is a test thread about Node.js best practices"
+  },
+  "content": {
+    "rendered": "<p>This is a test thread about Node.js best practices<br>It has multiple lines and discusses important topics.</p>\n<div class=\"thread-reply\">\n<p><strong>Reply:</strong></p>\n<p>Great point! I totally agree with this approach.</p>\n</div>\n<div class=\"thread-reply\">\n<p><strong>Reply:</strong></p>\n<p>Thanks for the feedback! Let&#039;s implement this.</p>\n</div>\n",
+    "protected": false
+  },
+  "excerpt": {
+    "rendered": "<p>This is a test thread about Node.js best practices</p>\n",
+    "protected": false
+  },
+  "author": 1,
+  "featured_media": 0,
+  "comment_status": "open",
+  "ping_status": "open",
+  "sticky": false,
+  "template": "",
+  "format": "standard",
+  "meta": [],
+  "categories": [1],
+  "tags": []
+}

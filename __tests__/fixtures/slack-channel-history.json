@@ -1,0 +1,42 @@
+{
+  "ok": true,
+  "messages": [
+    {
+      "type": "message",
+      "user": "U1234567890",
+      "text": "This is a test thread about Node.js best practices",
+      "ts": "1234567890.123456",
+      "thread_ts": "1234567890.123456",
+      "reply_count": 2,
+      "reply_users_count": 2,
+      "latest_reply": "1234567891.123457",
+      "reply_users": ["U1234567890", "U0987654321"],
+      "is_locked": false,
+      "subscribed": false
+    },
+    {
+      "type": "message",
+      "user": "U0987654321",
+      "text": "Another thread about testing strategies",
+      "ts": "1234567892.123458",
+      "thread_ts": "1234567892.123458",
+      "reply_count": 1,
+      "reply_users_count": 1,
+      "latest_reply": "1234567893.123459",
+      "reply_users": ["U1234567890"],
+      "is_locked": false,
+      "subscribed": false
+    },
+    {
+      "type": "message",
+      "user": "U1234567890",
+      "text": "Regular message without thread",
+      "ts": "1234567894.123460"
+    }
+  ],
+  "has_more": false,
+  "pin_count": 0,
+  "response_metadata": {
+    "next_cursor": ""
+  }
+}

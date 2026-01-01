@@ -4,3 +4,9 @@ state.json
 data/
 npm-debug.log
 .DS_Store
+
+# Test artifacts
+coverage/
+__tests__/fixtures/test-*.json
+__tests__/fixtures/test-markdown-*
+*.log
